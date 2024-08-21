@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const { sendRegistrationConfirmation } = require('../../sendgrid/notifications');
 
 // Iniciar sesión
 exports.login = async (req, res) => {
@@ -47,8 +48,13 @@ exports.register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const user = await User.create({ username, email, password: hashedPassword, isAdmin, ban });
+
+        // Enviar correo de confirmación de registro
+        await sendRegistrationConfirmation(user.email, user.username);
+
         res.status(201).json(user);
     } catch (error) {
+        console.error('Error registering user:', error);
         res.status(500).json({ message: 'Error registering user' });
     }
 };

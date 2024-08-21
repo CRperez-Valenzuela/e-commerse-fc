@@ -1,4 +1,5 @@
 const {Order, Shoe} = require("../../models");
+const { sendOrderConfirmation } = require('../../sendgrid/notifications');
 
 exports.getAllOrdershoe = async (req, res) => {
     try {
@@ -34,11 +35,22 @@ exports.getOrderById = async (req, res) => {
 };
 
 exports.createOrder = async (req, res) => {
-    const { statuspago, statusenvio, fecha, total } = req.body;
+    const { statuspago, statusenvio, fecha, total, userEmail } = req.body; // Asegúrate de que userEmail esté en el body
     try {
         const newOrder = await Order.create({ statuspago, statusenvio, fecha, total });
+
+        // Detalles de la orden para el correo
+        const orderDetails = {
+            id: newOrder.id,
+            details: `Pago: ${statuspago}, Envío: ${statusenvio}, Fecha: ${fecha}, Total: ${total}`,
+        };
+
+        // Enviar correo de confirmación de orden
+        await sendOrderConfirmation(userEmail, orderDetails);
+
         res.status(201).json(newOrder);
     } catch (error) {
+        console.error('Error creating Order:', error);
         res.status(500).json({ message: 'Error creating Order', error });
     }
 };
